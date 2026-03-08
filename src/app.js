@@ -32,12 +32,24 @@ app.get('/api/webrtc/ice-servers', (req, res) => {
     { urls: 'stun:stun1.l.google.com:19302' }
   ];
 
-  // Бесплатный public TURN сервер для тестирования
-  iceServers.push({
-    urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443?transport=tcp'],
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  });
+  // Бесплатные public TURN серверы (резервные)
+  iceServers.push(
+    {
+      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443?transport=tcp'],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:numb.viagenie.ca:3478',
+      username: 'webrtc@example.com',
+      credential: 'webrtc'
+    },
+    {
+      urls: 'turn:turn.bistri.com:80',
+      username: 'webrtc',
+      credential: 'webrtc'
+    }
+  );
 
   // Опциональный приватный TURN (если настроен через env)
   if (config.turnUrl && config.turnUsername && config.turnCredential) {
