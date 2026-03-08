@@ -26,6 +26,23 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/webrtc/ice-servers', (req, res) => {
+  const iceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ];
+
+  if (config.turnUrl && config.turnUsername && config.turnCredential) {
+    iceServers.push({
+      urls: config.turnUrl,
+      username: config.turnUsername,
+      credential: config.turnCredential
+    });
+  }
+
+  res.json({ success: true, data: { iceServers } });
+});
+
 // REST API routes
 app.post('/api/room/create', roomController.createRoom);
 app.get('/api/room/:token', roomController.getRoomByToken);
