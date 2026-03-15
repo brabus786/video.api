@@ -9,6 +9,40 @@ const setupSignaling = require('./socket/signaling');
 const app = express();
 const server = http.createServer(app);
 
+const getFallbackIceServers = () => {
+  const iceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ];
+
+  if (config.turnUrl && config.turnUsername && config.turnCredential) {
+    iceServers.push({
+      urls: config.turnUrl,
+      username: config.turnUsername,
+      credential: config.turnCredential
+    });
+  }
+
+  return iceServers;
+};
+
+const getMeteredIceServers = async () => {
+  if (!config.meteredApiKey || !config.meteredApiUrl) {
+    return null;
+  }
+
+  const separator = config.meteredApiUrl.includes('?') ? '&' : '?';
+  const response = await fetch(
+    `${config.meteredApiUrl}${separator}apiKey=${encodeURIComponent(config.meteredApiKey)}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Metered request failed with status ${response.status}`);
+  }
+
+  return response.json();
+};
+
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
@@ -26,41 +60,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/webrtc/ice-servers', (req, res) => {
-  const iceServers = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ];
+app.get('/api/webrtc/ice-servers', async (req, res) => {
+  try {
+    const meteredIceServers = await getMeteredIceServers();
 
-  // Бесплатные public TURN серверы (резервные)
-  iceServers.push(
-    {
-      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443?transport=tcp'],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:numb.viagenie.ca:3478',
-      username: 'webrtc@example.com',
-      credential: 'webrtc'
-    },
-    {
-      urls: 'turn:turn.bistri.com:80',
-      username: 'webrtc',
-      credential: 'webrtc'
+    if (Array.isArray(meteredIceServers) && meteredIceServers.length > 0) {
+      return res.json({
+        success: true,
+        data: {
+          iceServers: meteredIceServers
+        }
+      });
     }
-  );
-
-  // Опциональный приватный TURN (если настроен через env)
-  if (config.turnUrl && config.turnUsername && config.turnCredential) {
-    iceServers.push({
-      urls: config.turnUrl,
-      username: config.turnUsername,
-      credential: config.turnCredential
-    });
+  } catch (error) {
+    console.error('Failed to load Metered ICE servers:', error.message);
   }
 
-  res.json({ success: true, data: { iceServers } });
+  return res.json({
+    success: true,
+    data: {
+      iceServers: getFallbackIceServers()
+    }
+  });
 });
 
 // REST API routes
