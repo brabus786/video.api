@@ -1,60 +1,91 @@
-# Video Call API
 
-Минимальный бэкенд для видео-звонков с WebRTC signaling через Socket.IO.
 
-## Возможности
+# Video Call API (Backend)
 
-- ✅ Генерация уникальных ссылок с токенами (TTL: 15 минут)
-- ✅ WebRTC signaling через Socket.IO
-- ✅ Модульная архитектура
-- ✅ В памяти хранилище (легко мигрировать на Redis)
-- ✅ REST API + WebSocket
+Backend for peer-to-peer video calls using Node.js, Express, WebRTC, and Socket.IO.
 
-## Установка
+## Tech Stack
+
+- **Node.js** (Express)
+- **Socket.IO** (WebSocket signaling)
+- **WebRTC** (peer-to-peer media)
+- **TypeScript**
+
+## Features
+
+- Unique room/token generation (TTL: 15 minutes)
+- WebRTC signaling via Socket.IO
+- Modular, in-memory architecture (easy to migrate to Redis)
+- REST API for room management
+
+
+
+
+## Installation
 
 ```bash
 yarn install
 ```
 
-## Настройка
 
-Создайте файл `.env`:
+
+## Setup
+
+Create a `.env` file:
 
 ```bash
 cp .env.example .env
 ```
 
-Настройте переменные окружения в `.env`:
+Set your environment variables in `.env` (see `.env.example`).
 
-```env
-PORT=3000
-NODE_ENV=development
-TOKEN_EXPIRY_MINUTES=15
-CORS_ORIGIN=*
+
+
+## Running
+
+### Development
+```bash
+yarn dev
 ```
-
-## Запуск
+Server will run at [http://localhost:3000](http://localhost:3000)
 
 ### Production
 ```bash
+yarn build
 yarn start
 ```
 
-### Development (с автоперезагрузкой)
+
+
+## Security & Publishing
+
+**Important:** Never commit real `.env` files or secrets to your repository. Only use `.env.example` for reference.
+
+
+## Run
+
+### Production
+```bash
+yarn build
+yarn start
+```
+
+### Development (with auto-reload)
 ```bash
 yarn dev
 ```
 
-## API
+
+
+## API Overview
 
 ### REST Endpoints
 
-#### 1. Создать комнату
-```http
-POST /api/room/create
-```
+- **POST `/api/room/create`** — Create a new room
+- **GET `/api/room/:token`** — Get room info by token
+- **GET `/health`** — Health check
 
-**Response:**
+Example response for room creation:
 ```json
 {
   "success": true,
@@ -68,150 +99,66 @@ POST /api/room/create
 }
 ```
 
-#### 2. Проверить токен
-```http
-GET /api/room/:token
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "roomId": "uuid",
-    "participantsCount": 0,
-    "maxParticipants": 2,
-    "isAvailable": true,
-    "expiresAt": "2026-03-08T12:00:00Z"
-  }
-}
-```
-
-#### 3. Health check
-```http
-GET /health
-```
 
 ### WebSocket Events
 
 #### Client → Server
-
-**Присоединиться к комнате:**
-```javascript
-socket.emit('join-room', { token }, (response) => {
-  console.log(response); // { success: true, roomId, participantsCount }
-});
-```
-
-**Отправить Offer:**
-```javascript
-socket.emit('offer', { offer, roomId });
-```
-
-**Отправить Answer:**
-```javascript
-socket.emit('answer', { answer, roomId });
-```
-
-**Отправить ICE Candidate:**
-```javascript
-socket.emit('ice-candidate', { candidate, roomId });
-```
-
-**Покинуть комнату:**
-```javascript
-socket.emit('leave-room', { roomId });
-```
+- `join-room` — Join a room
+- `offer` — Send WebRTC offer
+- `answer` — Send WebRTC answer
+- `ice-candidate` — Send ICE candidate
+- `leave-room` — Leave the room
 
 #### Server → Client
+- `user-joined` — A user joined the room
+- `offer` — Offer received
+- `answer` — Answer received
+- `ice-candidate` — ICE candidate received
+- `user-left` — A user left the room
 
-**Пользователь присоединился:**
-```javascript
-socket.on('user-joined', ({ socketId, participantsCount }) => {
-  // Инициировать WebRTC соединение
-});
-```
+src/
 
-**Получен Offer:**
-```javascript
-socket.on('offer', ({ offer, senderId }) => {
-  // Обработать offer и отправить answer
-});
-```
 
-**Получен Answer:**
-```javascript
-socket.on('answer', ({ answer, senderId }) => {
-  // Завершить WebRTC соединение
-});
-```
 
-**Получен ICE Candidate:**
-```javascript
-socket.on('ice-candidate', ({ candidate, senderId }) => {
-  // Добавить ICE candidate
-});
-```
-
-**Пользователь покинул комнату:**
-```javascript
-socket.on('user-left', ({ socketId, participantsCount }) => {
-  // Закрыть соединение
-});
-```
-
-## Архитектура
+## Project Structure
 
 ```
 src/
-├── app.js                 # Главный файл приложения
+├── app.ts                 # Main application file
 ├── config/
-│   └── config.js         # Конфигурация
+│   └── config.ts         # Configuration
 ├── controllers/
-│   └── roomController.js # REST API контроллер
+│   └── roomController.ts # REST API controller
 ├── services/
-│   ├── tokenService.js   # Управление токенами
-│   └── roomService.js    # Управление комнатами
+│   ├── tokenService.ts   # Token management
+│   └── roomService.ts    # Room management
 └── socket/
-    └── signaling.js      # WebRTC signaling логика
+  └── signaling.ts      # WebRTC signaling logic
 ```
 
-## Масштабирование
 
-Для production рекомендуется:
+## Scaling & Production
 
-1. **Redis** вместо in-memory хранилища
-   - Замените Map в токен и room сервисах на Redis
-   
-2. **Socket.IO Redis Adapter** для горизонтального масштабирования
-   ```javascript
-   const { createAdapter } = require('@socket.io/redis-adapter');
-   io.adapter(createAdapter(pubClient, subClient));
-   ```
+- Use **Redis** for distributed token/room storage
+- Use **Socket.IO Redis Adapter** for horizontal scaling
+- Use **PostgreSQL/MongoDB** for call history (optional)
+- Use **Nginx/HAProxy** with sticky sessions for load balancing
 
-3. **Database** для персистентности
-   - PostgreSQL/MongoDB для истории звонков
-   
-4. **Load Balancer** 
-   - Nginx/HAProxy с sticky sessions
+## Example Usage
 
-## Пример использования
-
-```javascript
+```js
 // Client-side
 const socket = io('http://localhost:3000');
 
-// Получение токена от API
-const response = await fetch('http://localhost:3000/api/room/create', {
-  method: 'POST'
-});
+// Get token from API
+const response = await fetch('http://localhost:3000/api/room/create', { method: 'POST' });
 const { data } = await response.json();
-console.log('Поделитесь этой ссылкой:', data.link);
+console.log('Share this link:', data.link);
 
-// Присоединение к комнате
+// Join the room
 socket.emit('join-room', { token: data.token }, (response) => {
   if (response.success) {
-    console.log('Присоединился к комнате:', response.roomId);
+    console.log('Joined room:', response.roomId);
   }
 });
 ```
