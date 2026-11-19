@@ -6,8 +6,6 @@ export interface AppConfig {
 	nodeEnv: string;
 	tokenExpiryMinutes: number;
 	corsOrigin: string;
-	meteredApiKey: string;
-	meteredApiUrl: string;
 	turnUrl: string;
 	turnUsername: string;
 	turnCredential: string;
@@ -18,8 +16,6 @@ const config: AppConfig = {
 	nodeEnv: process.env.NODE_ENV || 'development',
 	tokenExpiryMinutes: process.env.TOKEN_EXPIRY_MINUTES ? parseInt(process.env.TOKEN_EXPIRY_MINUTES, 10) : 15,
 	corsOrigin: process.env.CORS_ORIGIN || '*',
-	meteredApiKey: process.env.METERED_API_KEY || '',
-	meteredApiUrl: process.env.METERED_API_URL || '',
 	turnUrl: process.env.TURN_URL || '',
 	turnUsername: process.env.TURN_USERNAME || '',
 	turnCredential: process.env.TURN_CREDENTIAL || ''

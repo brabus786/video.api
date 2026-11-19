@@ -9,7 +9,7 @@ import setupSignaling from './socket/signaling';
 const app = express();
 const server = http.createServer(app);
 
-const getFallbackIceServers = () => {
+const getIceServers = () => {
 	const iceServers: Array<{ urls: string; username?: string; credential?: string }> = [
 		{ urls: 'stun:stun.l.google.com:19302' },
 		{ urls: 'stun:stun1.l.google.com:19302' }
@@ -22,20 +22,6 @@ const getFallbackIceServers = () => {
 		});
 	}
 	return iceServers;
-};
-
-const getMeteredIceServers = async () => {
-	if (!config.meteredApiKey || !config.meteredApiUrl) {
-		return null;
-	}
-	const separator = config.meteredApiUrl.includes('?') ? '&' : '?';
-	const response = await fetch(
-		`${config.meteredApiUrl}${separator}apiKey=${encodeURIComponent(config.meteredApiKey)}`
-	);
-	if (!response.ok) {
-		throw new Error(`Metered request failed with status ${response.status}`);
-	}
-	return response.json();
 };
 
 const io = new Server(server, {
@@ -52,24 +38,11 @@ app.get('/health', (_req: Request, res: Response) => {
 	res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/webrtc/ice-servers', async (_req: Request, res: Response) => {
-	try {
-		const meteredIceServers = await getMeteredIceServers();
-		if (Array.isArray(meteredIceServers) && meteredIceServers.length > 0) {
-			return res.json({
-				success: true,
-				data: {
-					iceServers: meteredIceServers
-				}
-			});
-		}
-	} catch (error: any) {
-		console.error('Failed to load Metered ICE servers:', error.message);
-	}
-	return res.json({
+app.get('/api/webrtc/ice-servers', (_req: Request, res: Response) => {
+	res.json({
 		success: true,
 		data: {
-			iceServers: getFallbackIceServers()
+			iceServers: getIceServers()
 		}
 	});
 });
