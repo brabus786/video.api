@@ -37,7 +37,7 @@ Create a `.env` file:
 cp .env.example .env
 ```
 
-Set your environment variables in `.env` (see `.env.example`).
+Set your environment variables in `.env`. Configure all three TURN variables together to enable TURN; if any one is set without the others, the API exits with a configuration error.
 
 
 
@@ -83,6 +83,7 @@ yarn dev
 
 - **POST `/api/room/create`** — Create a new room
 - **GET `/api/room/:token`** — Get room info by token
+- **GET `/api/webrtc/ice-servers`** — Get the configured STUN/TURN servers
 - **GET `/health`** — Health check
 
 Example response for room creation:
@@ -115,6 +116,22 @@ Example response for room creation:
 - `answer` — Answer received
 - `ice-candidate` — ICE candidate received
 - `user-left` — A user left the room
+
+### WebRTC ICE configuration
+
+`GET /api/webrtc/ice-servers` returns the configured STUN servers and, when all TURN variables are set, a TURN server with its username and credential. The client must pass the returned `iceServers` to `RTCPeerConnection`.
+
+To test TURN specifically, temporarily create the peer connection with relay-only transport:
+
+```js
+const { data } = await fetch('/api/webrtc/ice-servers').then((response) => response.json());
+const peerConnection = new RTCPeerConnection({
+  iceServers: data.iceServers,
+  iceTransportPolicy: 'relay'
+});
+```
+
+Remove `iceTransportPolicy: 'relay'` after the test so normal calls can use direct connections when available. In `chrome://webrtc-internals`, verify the selected ICE candidate pair contains a `relay` candidate. The TURN server must advertise its public relay address and allow its relay port range through both the cloud firewall and the host firewall.
 
 src/
 

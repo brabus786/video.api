@@ -21,4 +21,9 @@ const config: AppConfig = {
 	turnCredential: process.env.TURN_CREDENTIAL || ''
 };
 
+const turnSettings = [config.turnUrl, config.turnUsername, config.turnCredential];
+if (turnSettings.some(Boolean) && !turnSettings.every(Boolean)) {
+	throw new Error('TURN_URL, TURN_USERNAME, and TURN_CREDENTIAL must be configured together.');
+}
+
 export default config;
